@@ -17,6 +17,12 @@ Each package has exactly one reason to change:
   totals are computed properties so they can never drift. `PricingConfig` (Milestone 2) holds
   pricing rules with sensible defaults. `QuoteBreakdown` (Milestone 2) is the immutable result of a
   quote calculation, carrying every line-item needed to render a quote in any UI.
+  `PricingProfile` (Milestone 2.1) is a named wrapper around a `PricingConfig` — it adds a
+  machine-readable `name` and a human-readable `label` so UIs can present and store profiles by
+  name without `PricingConfig` itself needing to know it has one. The five built-in profiles live as
+  a module-level tuple in `models/pricing_profile.py`; `QuoteService` deliberately remains unaware
+  of profiles and continues to accept a bare `PricingConfig` — profile selection is the caller's
+  responsibility.
 - **`parsers/`** — everything that knows the *shape* of a specific slicer's output. Today there's
   one implementation, `bambu_orca.py`, targeting Bambu Studio and OrcaSlicer (they share an
   identical `Metadata/slice_info.config` format because OrcaSlicer's 3MF reader/writer was forked
@@ -72,3 +78,12 @@ No parser registry/plugin framework, no abstract factory, no settings/config sys
 framework. With exactly one slicer parser and one console UI, those would be speculative complexity
 with no current caller. `SlicerProjectParser` gives just enough abstraction to add a second parser
 without a rewrite; nothing more is justified until there's a second one to add.
+
+## Known technical debt
+
+**Money values use `float`.** All cost fields in `PricingConfig`, `QuoteBreakdown`, and
+`QuoteService` use Python `float`. This is acceptable for early internal quoting where the figures
+are estimates and rounding errors at the penny level are inconsequential. Before the quoting system
+becomes production-grade — i.e., once quotes are sent to customers or used for invoicing — these
+fields should be migrated to `decimal.Decimal` (or integer pennies with explicit rounding rules) to
+avoid accumulating floating-point rounding errors across multi-plate jobs or high-volume runs.
