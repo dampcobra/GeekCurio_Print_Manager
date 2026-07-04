@@ -20,7 +20,7 @@ def _job(print_time_s: int, weight_g: float) -> PrintJob:
 def test_default_config_rates():
     config = PricingConfig()
     assert config.hourly_machine_rate == pytest.approx(3.0)
-    assert config.material_cost_per_gram == pytest.approx(0.03)
+    assert config.material_cost_per_gram == pytest.approx(0.05)
 
 
 def test_default_config_optional_fields_are_neutral():
@@ -32,15 +32,15 @@ def test_default_config_optional_fields_are_neutral():
 # --- Normal project ---
 
 def test_normal_job_produces_correct_breakdown():
-    # 3600s = 1 hr, 100 g  →  time_cost=3.00, material=3.00, total=6.00
+    # 3600s = 1 hr, 100 g  →  time_cost=3.00, material=5.00, total=8.00
     breakdown = QuoteService().calculate(_job(3600, 100.0))
     assert breakdown.print_time_hours == pytest.approx(1.0)
     assert breakdown.print_time_cost == pytest.approx(3.0)
     assert breakdown.material_weight_g == pytest.approx(100.0)
-    assert breakdown.material_cost == pytest.approx(3.0)
-    assert breakdown.subtotal == pytest.approx(6.0)
+    assert breakdown.material_cost == pytest.approx(5.0)
+    assert breakdown.subtotal == pytest.approx(8.0)
     assert breakdown.markup_amount == pytest.approx(0.0)
-    assert breakdown.total == pytest.approx(6.0)
+    assert breakdown.total == pytest.approx(8.0)
 
 
 def test_custom_rates():
@@ -58,7 +58,7 @@ def test_zero_print_time():
     breakdown = QuoteService().calculate(_job(0, 50.0))
     assert breakdown.print_time_hours == pytest.approx(0.0)
     assert breakdown.print_time_cost == pytest.approx(0.0)
-    assert breakdown.total == pytest.approx(50.0 * 0.03)
+    assert breakdown.total == pytest.approx(50.0 * 0.05)
 
 
 def test_zero_material_weight():
@@ -79,12 +79,12 @@ def test_zero_time_and_zero_weight():
 # --- Overhead multiplier ---
 
 def test_overhead_multiplier_scales_subtotal():
-    # 1 hr, 100 g → raw=6.00, ×1.2 → subtotal=7.20
+    # 1 hr, 100 g → raw=8.00, ×1.2 → subtotal=9.60
     config = PricingConfig(overhead_multiplier=1.2)
     breakdown = QuoteService(config).calculate(_job(3600, 100.0))
-    assert breakdown.subtotal == pytest.approx(7.2)
+    assert breakdown.subtotal == pytest.approx(9.6)
     assert breakdown.markup_amount == pytest.approx(0.0)
-    assert breakdown.total == pytest.approx(7.2)
+    assert breakdown.total == pytest.approx(9.6)
 
 
 def test_overhead_of_one_is_unchanged():
@@ -97,27 +97,27 @@ def test_overhead_of_one_is_unchanged():
 # --- Markup percentage ---
 
 def test_markup_percentage_applied_to_subtotal():
-    # subtotal=6.00, markup=25% → markup_amount=1.50, total=7.50
+    # 1hr, 100g → time=3.00, material=5.00, subtotal=8.00, markup=25% → +2.00, total=10.00
     config = PricingConfig(markup_percentage=25.0)
     breakdown = QuoteService(config).calculate(_job(3600, 100.0))
-    assert breakdown.subtotal == pytest.approx(6.0)
-    assert breakdown.markup_amount == pytest.approx(1.5)
-    assert breakdown.total == pytest.approx(7.5)
+    assert breakdown.subtotal == pytest.approx(8.0)
+    assert breakdown.markup_amount == pytest.approx(2.0)
+    assert breakdown.total == pytest.approx(10.0)
 
 
 def test_overhead_and_markup_combined():
-    # raw=6.00, ×1.2 → subtotal=7.20, +10% → markup=0.72, total=7.92
+    # raw=8.00, ×1.2 → subtotal=9.60, +10% → markup=0.96, total=10.56
     config = PricingConfig(overhead_multiplier=1.2, markup_percentage=10.0)
     breakdown = QuoteService(config).calculate(_job(3600, 100.0))
-    assert breakdown.subtotal == pytest.approx(7.2)
-    assert breakdown.markup_amount == pytest.approx(0.72)
-    assert breakdown.total == pytest.approx(7.92)
+    assert breakdown.subtotal == pytest.approx(9.6)
+    assert breakdown.markup_amount == pytest.approx(0.96)
+    assert breakdown.total == pytest.approx(10.56)
 
 
 # --- Multi-plate job ---
 
 def test_multi_plate_job_totals_across_plates():
-    # plate1: 3600s, 50g; plate2: 7200s, 100g → 3 hrs, 150g → 9.00+4.50=13.50
+    # plate1: 3600s, 50g; plate2: 7200s, 100g → 3 hrs, 150g → 9.00+7.50=16.50
     plates = (
         PlateSummary(index=1, print_time_s=3600, weight_g=50.0),
         PlateSummary(index=2, print_time_s=7200, weight_g=100.0),
@@ -126,7 +126,7 @@ def test_multi_plate_job_totals_across_plates():
     breakdown = QuoteService().calculate(job)
     assert breakdown.print_time_hours == pytest.approx(3.0)
     assert breakdown.material_weight_g == pytest.approx(150.0)
-    assert breakdown.total == pytest.approx(13.5)
+    assert breakdown.total == pytest.approx(16.5)
 
 
 # --- Breakdown captures config values ---

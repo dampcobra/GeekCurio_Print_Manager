@@ -45,6 +45,8 @@ geekcurio-print-manager "Sample Projects\your-file.3mf"
 
 ```
 geekcurio-quote "Sample Projects\your-file.3mf"
+geekcurio-quote "Sample Projects\your-file.3mf" resin
+geekcurio-quote "Sample Projects\your-file.3mf" premium_fdm
 ```
 
 Or omit the path to be prompted:
@@ -53,8 +55,15 @@ Or omit the path to be prompted:
 geekcurio-quote
 ```
 
-The quote uses default GeekCurio pricing (£3.00/hr machine time, £0.03/g material). To use custom
-rates, instantiate `PricingConfig` and pass it to `QuoteService` in your own script:
+List all available pricing profiles:
+
+```
+geekcurio-quote --list
+```
+
+Available profiles: `fdm_pla` (default), `fdm_petg`, `resin`, `premium_fdm`, `internal_test`.
+
+To use fully custom rates in a script, instantiate `PricingConfig` directly and pass it to `QuoteService`:
 
 ```python
 from geekcurio_print_manager.models.pricing_config import PricingConfig

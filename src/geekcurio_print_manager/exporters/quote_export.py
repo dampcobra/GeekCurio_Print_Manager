@@ -13,8 +13,15 @@ def _sep(char: str = "-") -> str:
     return f"  {char * (_LW + 10)}"
 
 
-def build_quote_report(job: PrintJob, breakdown: QuoteBreakdown) -> str:
-    lines = [f"GeekCurio Quote: {job.source_path.name}", ""]
+def build_quote_report(
+    job: PrintJob,
+    breakdown: QuoteBreakdown,
+    profile_label: str | None = None,
+) -> str:
+    header = f"GeekCurio Quote: {job.source_path.name}"
+    if profile_label:
+        header += f"  [{profile_label}]"
+    lines = [header, ""]
     lines.append(_row(f"Print time ({breakdown.print_time_hours:.2f} hrs)", breakdown.print_time_cost))
     lines.append(_row(f"Material ({format_weight(breakdown.material_weight_g)})", breakdown.material_cost))
 

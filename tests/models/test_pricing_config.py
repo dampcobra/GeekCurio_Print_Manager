@@ -6,7 +6,7 @@ from geekcurio_print_manager.models.pricing_config import PricingConfig
 def test_default_rates_match_geekqurio_pricing():
     config = PricingConfig()
     assert config.hourly_machine_rate == pytest.approx(3.0)
-    assert config.material_cost_per_gram == pytest.approx(0.03)
+    assert config.material_cost_per_gram == pytest.approx(0.05)
 
 
 def test_default_optional_fields_are_neutral():
