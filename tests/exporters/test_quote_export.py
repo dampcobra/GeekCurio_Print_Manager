@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 
 from geekcurio_print_manager.exporters.quote_export import build_quote_report
@@ -16,14 +17,14 @@ def _job() -> PrintJob:
 def _breakdown(**overrides) -> QuoteBreakdown:
     defaults = dict(
         print_time_hours=1.0,
-        print_time_cost=3.0,
+        print_time_cost=Decimal("3.00"),
         material_weight_g=100.0,
-        material_cost=3.0,
-        overhead_multiplier=1.0,
-        markup_percentage=0.0,
-        subtotal=6.0,
-        markup_amount=0.0,
-        total=6.0,
+        material_cost=Decimal("3.00"),
+        overhead_multiplier=Decimal("1.0"),
+        markup_percentage=Decimal("0"),
+        subtotal=Decimal("6.00"),
+        markup_amount=Decimal("0.00"),
+        total=Decimal("6.00"),
     )
     defaults.update(overrides)
     return QuoteBreakdown(**defaults)
@@ -41,7 +42,12 @@ def test_report_contains_total_amount():
 
 
 def test_markup_lines_shown_when_markup_present():
-    bd = _breakdown(subtotal=6.0, markup_percentage=10.0, markup_amount=0.6, total=6.6)
+    bd = _breakdown(
+        subtotal=Decimal("6.00"),
+        markup_percentage=Decimal("10"),
+        markup_amount=Decimal("0.60"),
+        total=Decimal("6.60"),
+    )
     report = build_quote_report(_job(), bd)
     assert "Subtotal" in report
     assert "Markup" in report
@@ -56,7 +62,11 @@ def test_markup_lines_absent_when_zero():
 
 
 def test_overhead_line_shown_when_applied():
-    bd = _breakdown(overhead_multiplier=1.2, subtotal=7.2, total=7.2)
+    bd = _breakdown(
+        overhead_multiplier=Decimal("1.2"),
+        subtotal=Decimal("7.20"),
+        total=Decimal("7.20"),
+    )
     report = build_quote_report(_job(), bd)
     assert "Overhead" in report
 

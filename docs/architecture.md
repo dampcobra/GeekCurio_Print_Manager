@@ -22,7 +22,12 @@ Each package has exactly one reason to change:
   name without `PricingConfig` itself needing to know it has one. The five built-in profiles live as
   a module-level tuple in `models/pricing_profile.py`; `QuoteService` deliberately remains unaware
   of profiles and continues to accept a bare `PricingConfig` — profile selection is the caller's
-  responsibility.
+  responsibility. All monetary fields in `PricingConfig` and `QuoteBreakdown` use `decimal.Decimal`
+  (Milestone 2.2); non-monetary measurements such as print time in seconds and material weight in
+  grams remain plain numeric types. Decimal values are always constructed from strings
+  (`Decimal("0.05")`), never from floats. Conversion from float measurements happens at the
+  calculation boundary in `QuoteService` using `str()` to avoid binary float representation issues.
+  Each monetary output field is quantized to `Decimal("0.01")` with `ROUND_HALF_UP`.
 - **`parsers/`** — everything that knows the *shape* of a specific slicer's output. Today there's
   one implementation, `bambu_orca.py`, targeting Bambu Studio and OrcaSlicer (they share an
   identical `Metadata/slice_info.config` format because OrcaSlicer's 3MF reader/writer was forked
@@ -81,9 +86,7 @@ without a rewrite; nothing more is justified until there's a second one to add.
 
 ## Known technical debt
 
-**Money values use `float`.** All cost fields in `PricingConfig`, `QuoteBreakdown`, and
-`QuoteService` use Python `float`. This is acceptable for early internal quoting where the figures
-are estimates and rounding errors at the penny level are inconsequential. Before the quoting system
-becomes production-grade — i.e., once quotes are sent to customers or used for invoicing — these
-fields should be migrated to `decimal.Decimal` (or integer pennies with explicit rounding rules) to
-avoid accumulating floating-point rounding errors across multi-plate jobs or high-volume runs.
+No current known debt in the money layer. The float-to-Decimal migration was completed in
+Milestone 2.2. If a future requirement calls for banker's rounding or a different quantization
+strategy, that is a one-line change to the `_PENNY` constant and rounding mode in
+`services/quote_service.py`.
