@@ -4,10 +4,11 @@ A desktop application that automates the administrative side of GeekCurio's 3D p
 workflow — quoting, packing lists, print queue, and inventory — while leaving engineering and
 slicing decisions to the operator.
 
-This repository currently implements **Milestone 1**: the 3MF Project Inspector. It accepts a
-`.3mf` file exported (sliced) from Bambu Studio or OrcaSlicer, extracts total print time and total
-material usage, and displays them. See `docs/architecture.md` for how the codebase is organised and
-how later phases (quoting, PDF export, inventory) are expected to build on this foundation.
+This repository implements **Milestone 1** (3MF Project Inspector) and **Milestone 2** (Quote
+Generator). It accepts a `.3mf` file exported (sliced) from Bambu Studio or OrcaSlicer, extracts
+print time and material usage, and calculates a suggested price using configurable pricing rules.
+See `docs/architecture.md` for how the codebase is organised and how later phases (PDF export,
+inventory) are expected to build on this foundation.
 
 ## Setup
 
@@ -21,6 +22,8 @@ pip install -e .
 ```
 
 ## Running
+
+### 3MF Project Inspector
 
 ```
 python -m geekcurio_print_manager "Sample Projects\your-file.3mf"
@@ -36,6 +39,38 @@ Or, after the editable install, use the console script:
 
 ```
 geekcurio-print-manager "Sample Projects\your-file.3mf"
+```
+
+### Quote Generator
+
+```
+geekcurio-quote "Sample Projects\your-file.3mf"
+```
+
+Or omit the path to be prompted:
+
+```
+geekcurio-quote
+```
+
+The quote uses default GeekCurio pricing (£3.00/hr machine time, £0.03/g material). To use custom
+rates, instantiate `PricingConfig` and pass it to `QuoteService` in your own script:
+
+```python
+from geekcurio_print_manager.models.pricing_config import PricingConfig
+from geekcurio_print_manager.services.inspection_service import InspectionService
+from geekcurio_print_manager.services.quote_service import QuoteService
+from geekcurio_print_manager.exporters.quote_export import build_quote_report
+
+config = PricingConfig(
+    hourly_machine_rate=4.0,
+    material_cost_per_gram=0.04,
+    overhead_multiplier=1.15,
+    markup_percentage=20.0,
+)
+job = InspectionService().inspect("my-project.3mf")
+breakdown = QuoteService(config).calculate(job)
+print(build_quote_report(job, breakdown))
 ```
 
 Drop real exported `.3mf` files into `Sample Projects/` for manual testing — that folder is

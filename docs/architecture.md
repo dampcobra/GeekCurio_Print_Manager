@@ -12,10 +12,11 @@ without `sys.path` hacks.
 
 Each package has exactly one reason to change:
 
-- **`models/`** — pure data (`FilamentUsage`, `PlateSummary`, `PrintJob`). No file I/O, no parsing,
-  no UI. This is the shared vocabulary every other package speaks. Totals (`total_print_time_s`,
-  `total_weight_g`, `filament_totals_by_material()`) are computed properties, not stored fields, so
-  they can never drift out of sync with the underlying plate data.
+- **`models/`** — pure data. No file I/O, no parsing, no UI. This is the shared vocabulary every
+  other package speaks. `PrintJob` / `PlateSummary` / `FilamentUsage` describe a parsed 3MF project;
+  totals are computed properties so they can never drift. `PricingConfig` (Milestone 2) holds
+  pricing rules with sensible defaults. `QuoteBreakdown` (Milestone 2) is the immutable result of a
+  quote calculation, carrying every line-item needed to render a quote in any UI.
 - **`parsers/`** — everything that knows the *shape* of a specific slicer's output. Today there's
   one implementation, `bambu_orca.py`, targeting Bambu Studio and OrcaSlicer (they share an
   identical `Metadata/slice_info.config` format because OrcaSlicer's 3MF reader/writer was forked
@@ -26,12 +27,13 @@ Each package has exactly one reason to change:
   the only thing that knows how to go from a file path to a validated `PrintJob`: it checks the file
   exists, confirms it's a genuine 3MF archive *before* looking for slicer-specific metadata (so a
   corrupted or unrelated zip fails with "not a valid 3MF" rather than a confusing "missing metadata"
-  message), then hands off to whichever registered parser recognises the archive. Phase 2's costing
-  engine will be a new service (`services/costing_service.py`) that consumes the same `PrintJob`
-  output — it won't need to know anything about 3MF files or zip archives.
-- **`exporters/`** — turns a `PrintJob` into an external representation (today: TXT/CSV). Has zero
-  knowledge of how the job was obtained. This is where Phase 3's PDF quote generation will live
-  alongside `text_export.py`.
+  message), then hands off to whichever registered parser recognises the archive. `QuoteService`
+  (Milestone 2) accepts a `PrintJob` and a `PricingConfig` and returns a `QuoteBreakdown` — it has
+  no knowledge of 3MF files, parsers, or archives.
+- **`exporters/`** — turns model objects into external representations. `text_export.py` formats a
+  `PrintJob` as TXT/CSV. `quote_export.py` (Milestone 2) formats a `PrintJob` + `QuoteBreakdown`
+  as a human-readable quote report. Neither exporter knows how the job was obtained. Phase 3's PDF
+  export will be a new file in this package alongside both.
 - **`ui/`** — presentation only. `console.py` is Milestone 1's entire interface: read a path, call
   the service, print the result or the error. It contains no business logic, so when Phase 3
   introduces PySide6, the GUI becomes a new `ui/qt/` subpackage that calls the exact same
@@ -58,12 +60,9 @@ terminal line, with no changes to `services/` or `parsers/`.
 
 ## Extension points for later phases
 
-- **Phase 2 (Quote Generator)** — add `services/costing_service.py` that takes a `PrintJob` (already
-  has per-plate weight, time, and per-filament-type usage) and machine/material rate tables, and
-  returns a costing result. No changes needed to `parsers/` or `models/`.
 - **Phase 3 (PDF quotes, packing lists, print queue)** — add `exporters/pdf_export.py` alongside
-  `text_export.py`, and a `ui/qt/` subpackage for the PySide6 GUI. Both consume the same
-  `InspectionService` / `PrintJob` the console UI uses today.
+  `text_export.py` and `quote_export.py`. The GUI becomes a `ui/qt/` subpackage that calls the
+  same `InspectionService` and `QuoteService` the console already uses.
 - **Phase 4 (Inventory)** — a new `services/inventory_service.py` and its own models, likely
   consuming `PrintJob.filament_totals_by_material()` to decrement stock after a print is queued.
 
