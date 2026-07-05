@@ -12,7 +12,13 @@ class QuoteRepository:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
-    def save(self, job: PrintJob, breakdown: QuoteBreakdown, profile: PricingProfile) -> SavedQuote:
+    def save(
+        self,
+        job: PrintJob,
+        breakdown: QuoteBreakdown,
+        profile: PricingProfile,
+        notes: str | None = None,
+    ) -> SavedQuote:
         created_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         cursor = self._conn.execute(
@@ -22,8 +28,9 @@ class QuoteRepository:
                 profile_name, profile_label,
                 print_time_s, total_weight_g,
                 print_time_cost, material_cost, overhead_multiplier,
-                markup_percentage, subtotal, markup_amount, total
-            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                markup_percentage, subtotal, markup_amount, total,
+                notes
+            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 created_at,
@@ -40,6 +47,7 @@ class QuoteRepository:
                 str(breakdown.subtotal),
                 str(breakdown.markup_amount),
                 str(breakdown.total),
+                notes,
             ),
         )
         quote_id = cursor.lastrowid
@@ -83,6 +91,7 @@ class QuoteRepository:
             profile_label=profile.label,
             breakdown=breakdown,
             plates=job.plates,
+            notes=notes,
         )
 
     def get_by_ref(self, quote_ref: str) -> SavedQuote | None:
@@ -120,6 +129,7 @@ class QuoteRepository:
             profile_label=row["profile_label"],
             breakdown=breakdown,
             plates=self._load_plates(row["id"]),
+            notes=row["notes"],
         )
 
     def _load_plates(self, quote_id: int) -> tuple[PlateSummary, ...]:

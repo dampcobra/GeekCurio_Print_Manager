@@ -4,11 +4,19 @@ A desktop application that automates the administrative side of GeekCurio's 3D p
 workflow — quoting, packing lists, print queue, and inventory — while leaving engineering and
 slicing decisions to the operator.
 
-This repository implements **Milestone 1** (3MF Project Inspector) and **Milestone 2** (Quote
-Generator). It accepts a `.3mf` file exported (sliced) from Bambu Studio or OrcaSlicer, extracts
-print time and material usage, and calculates a suggested price using configurable pricing rules.
-See `docs/architecture.md` for how the codebase is organised and how later phases (PDF export,
-inventory) are expected to build on this foundation.
+This repository implements three milestones:
+
+- **Milestone 1 — 3MF Project Inspector**: parse a `.3mf` file exported from Bambu Studio or
+  OrcaSlicer and extract print time, material usage, and per-plate detail.
+- **Milestone 2 — Quote Generator**: calculate a price from configurable pricing rules using five
+  built-in profiles. All monetary values use `decimal.Decimal` for exact currency arithmetic.
+- **Milestone 3 — Quote Persistence**: every generated quote is automatically saved to a local
+  SQLite database (`%LOCALAPPDATA%\GeekCurio\GCPM\gcpm.sqlite`) and assigned a permanent
+  reference number in the format `GCQ-YYYY-NNNNNN` (e.g. `GCQ-2026-000001`). The sequence never
+  resets. Profile values are snapshotted at save time so historical quotes are immutable.
+
+See `docs/architecture.md` for how the codebase is organised and how later milestones (PDF export,
+GUI) are expected to build on this foundation.
 
 ## Setup
 
@@ -63,19 +71,29 @@ geekcurio-quote --list
 
 Available profiles: `fdm_pla` (default), `fdm_petg`, `resin`, `premium_fdm`, `internal_test`.
 
+Every quote is automatically saved and assigned a reference number (`GCQ-YYYY-NNNNNN`), which
+appears in the output:
+
+```
+GeekCurio Quote: DriftPostBase.gcode.3mf  [FDM — PLA (Standard)]
+Ref: GCQ-2026-000001
+...
+```
+
 To use fully custom rates in a script, instantiate `PricingConfig` directly and pass it to `QuoteService`:
 
 ```python
+from decimal import Decimal
 from geekcurio_print_manager.models.pricing_config import PricingConfig
 from geekcurio_print_manager.services.inspection_service import InspectionService
 from geekcurio_print_manager.services.quote_service import QuoteService
 from geekcurio_print_manager.exporters.quote_export import build_quote_report
 
 config = PricingConfig(
-    hourly_machine_rate=4.0,
-    material_cost_per_gram=0.04,
-    overhead_multiplier=1.15,
-    markup_percentage=20.0,
+    hourly_machine_rate=Decimal("4.00"),
+    material_cost_per_gram=Decimal("0.04"),
+    overhead_multiplier=Decimal("1.15"),
+    markup_percentage=Decimal("20"),
 )
 job = InspectionService().inspect("my-project.3mf")
 breakdown = QuoteService(config).calculate(job)

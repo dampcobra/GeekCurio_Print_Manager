@@ -14,3 +14,4 @@ class SavedQuote:
     profile_label: str
     breakdown: QuoteBreakdown
     plates: tuple[PlateSummary, ...]
+    notes: str | None = None

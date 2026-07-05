@@ -1,6 +1,6 @@
 import sqlite3
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def initialise_database(conn: sqlite3.Connection) -> None:
@@ -26,7 +26,8 @@ def initialise_database(conn: sqlite3.Connection) -> None:
             markup_percentage   TEXT    NOT NULL,
             subtotal            TEXT    NOT NULL,
             markup_amount       TEXT    NOT NULL,
-            total               TEXT    NOT NULL
+            total               TEXT    NOT NULL,
+            notes               TEXT
         );
 
         CREATE TABLE IF NOT EXISTS quote_plates (
@@ -49,9 +50,21 @@ def initialise_database(conn: sqlite3.Connection) -> None:
             used_m      REAL
         );
     """)
-    # executescript auto-commits; insert version marker separately
+    # executescript auto-commits; insert version marker and run migrations separately
     conn.execute(
         "INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', ?)",
         (str(SCHEMA_VERSION),),
     )
+    _migrate(conn)
     conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    row = conn.execute("SELECT value FROM _meta WHERE key = 'schema_version'").fetchone()
+    current = int(row["value"]) if row else 0
+
+    if current < 2:
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(quotes)").fetchall()}
+        if "notes" not in cols:
+            conn.execute("ALTER TABLE quotes ADD COLUMN notes TEXT")
+        conn.execute("UPDATE _meta SET value = '2' WHERE key = 'schema_version'")

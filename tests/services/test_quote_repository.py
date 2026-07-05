@@ -164,6 +164,30 @@ def test_list_recent_respects_limit(repo):
     assert len(results) == 3
 
 
+def test_notes_default_to_none(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile)
+    assert saved.notes is None
+
+
+def test_notes_are_persisted_and_retrieved(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile, notes="Rush order — needed by Friday")
+    assert saved.notes == "Rush order — needed by Friday"
+    retrieved = repo.get_by_ref(saved.quote_ref)
+    assert retrieved.notes == "Rush order — needed by Friday"
+
+
+def test_notes_none_round_trips_as_none(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile, notes=None)
+    retrieved = repo.get_by_ref(saved.quote_ref)
+    assert retrieved.notes is None
+
+
 def test_multiplate_job_persists_all_plates(repo):
     job = PrintJob(
         source_path=Path("multiplate.3mf"),
