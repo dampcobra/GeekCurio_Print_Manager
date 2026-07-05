@@ -5,6 +5,7 @@ from geekcurio_print_manager.exceptions import PrintManagerError
 from geekcurio_print_manager.exporters.quote_export import build_quote_report
 from geekcurio_print_manager.models.pricing_profile import BUILTIN_PROFILES, get_profile
 from geekcurio_print_manager.services.inspection_service import InspectionService
+from geekcurio_print_manager.services.quote_repository import QuoteRepository
 from geekcurio_print_manager.services.quote_service import QuoteService
 
 _DEFAULT_PROFILE = "fdm_pla"
@@ -25,6 +26,7 @@ def _list_profiles() -> None:
 
 def run_quote(
     inspection_service: InspectionService,
+    repository: QuoteRepository,
     argv: Sequence[str] | None = None,
 ) -> int:
     parser = argparse.ArgumentParser(
@@ -63,5 +65,6 @@ def run_quote(
         return 1
 
     breakdown = QuoteService(profile.config).calculate(job)
-    print(build_quote_report(job, breakdown, profile_label=profile.label))
+    saved = repository.save(job, breakdown, profile)
+    print(build_quote_report(job, breakdown, profile_label=profile.label, quote_ref=saved.quote_ref))
     return 0

@@ -28,6 +28,11 @@ Each package has exactly one reason to change:
   (`Decimal("0.05")`), never from floats. Conversion from float measurements happens at the
   calculation boundary in `QuoteService` using `str()` to avoid binary float representation issues.
   Each monetary output field is quantized to `Decimal("0.01")` with `ROUND_HALF_UP`.
+  `SavedQuote` (Milestone 3) is a persisted snapshot combining a `QuoteBreakdown`, the full
+  `PlateSummary` tuple from the originating `PrintJob`, and metadata: a professional quote
+  reference (`GCQ-YYYY-NNNNNN`), creation timestamp, source filename, slicer, and snapshotted
+  profile name and label. Once saved, a `SavedQuote` is immutable — it reflects exactly what was
+  quoted regardless of any later changes to pricing profiles.
 - **`parsers/`** — everything that knows the *shape* of a specific slicer's output. Today there's
   one implementation, `bambu_orca.py`, targeting Bambu Studio and OrcaSlicer (they share an
   identical `Metadata/slice_info.config` format because OrcaSlicer's 3MF reader/writer was forked
@@ -40,11 +45,22 @@ Each package has exactly one reason to change:
   corrupted or unrelated zip fails with "not a valid 3MF" rather than a confusing "missing metadata"
   message), then hands off to whichever registered parser recognises the archive. `QuoteService`
   (Milestone 2) accepts a `PrintJob` and a `PricingConfig` and returns a `QuoteBreakdown` — it has
-  no knowledge of 3MF files, parsers, or archives.
+  no knowledge of 3MF files, parsers, or archives. `QuoteRepository` (Milestone 3) persists and
+  retrieves `SavedQuote` records via a SQLite connection. It accepts an already-initialised
+  `sqlite3.Connection` so callers (the CLI entry point, or tests using in-memory databases) control
+  the connection lifecycle independently of the service logic.
+- **`db/`** — database infrastructure only; no business logic. `database.py` resolves the database
+  path via `platformdirs` (writing to `%LOCALAPPDATA%\GeekCurio\GCPM\gcpm.sqlite` on Windows),
+  creates the application data directory on first run, and provides an `open_connection` factory
+  that sets `PRAGMA foreign_keys = ON` and `row_factory = sqlite3.Row`. `schema.py` declares all
+  `CREATE TABLE IF NOT EXISTS` statements and a `_meta` table carrying a `schema_version` integer
+  so future migrations can determine what they are upgrading from. Calling `initialise_database`
+  twice is safe — all statements are idempotent.
 - **`exporters/`** — turns model objects into external representations. `text_export.py` formats a
   `PrintJob` as TXT/CSV. `quote_export.py` (Milestone 2) formats a `PrintJob` + `QuoteBreakdown`
-  as a human-readable quote report. Neither exporter knows how the job was obtained. Phase 3's PDF
-  export will be a new file in this package alongside both.
+  as a human-readable quote report; it accepts an optional `quote_ref` so the assigned reference
+  number appears in the output after a quote is saved. Neither exporter knows how the job was
+  obtained. Milestone 4's PDF export will be a new file in this package alongside both.
 - **`ui/`** — presentation only. `console.py` is Milestone 1's entire interface: read a path, call
   the service, print the result or the error. It contains no business logic, so when Phase 3
   introduces PySide6, the GUI becomes a new `ui/qt/` subpackage that calls the exact same
@@ -69,13 +85,19 @@ constructor, so `ui/console.py` never constructs error text itself — it just p
 This also means a future GUI can catch the same exceptions and show them in a dialog instead of a
 terminal line, with no changes to `services/` or `parsers/`.
 
-## Extension points for later phases
+## Extension points for later milestones
 
-- **Phase 3 (PDF quotes, packing lists, print queue)** — add `exporters/pdf_export.py` alongside
-  `text_export.py` and `quote_export.py`. The GUI becomes a `ui/qt/` subpackage that calls the
-  same `InspectionService` and `QuoteService` the console already uses.
-- **Phase 4 (Inventory)** — a new `services/inventory_service.py` and its own models, likely
-  consuming `PrintJob.filament_totals_by_material()` to decrement stock after a print is queued.
+- **Milestone 4 (PDF quotes)** — add `exporters/pdf_export.py`. It will consume `SavedQuote`
+  records retrieved via `QuoteRepository.get_by_ref()`, so the PDF always reflects the exact data
+  that was stored — not a transient recalculation. Per-plate detail is already persisted in
+  `quote_plates` / `quote_plate_filaments` ready for use.
+- **Milestone 5 (GUI)** — a `ui/qt/` subpackage calling the same `InspectionService`,
+  `QuoteService`, and `QuoteRepository` the console already uses. The console CLI keeps working
+  unchanged alongside it.
+- **Future (Customers, Orders, Inventory)** — new service and model files. `QuoteRepository` can
+  gain a `customer_id` foreign key when the customers table exists; no changes to existing columns
+  required. `PrintJob.filament_totals_by_material()` is the natural integration point for inventory
+  decrements when a print is queued.
 
 ## Deliberately not built yet
 

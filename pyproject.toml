@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Automates the administrative side of GeekCurio's 3D printing workflow."
 requires-python = ">=3.13"
 readme = "README.md"
+dependencies = ["platformdirs>=4.0"]
 
 [project.scripts]
 geekcurio-print-manager = "geekcurio_print_manager.app:main"
