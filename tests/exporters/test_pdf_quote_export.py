@@ -16,6 +16,7 @@ from geekcurio_print_manager.exporters.pdf_quote_export import (
     _allocate_plate_costs,
     build_pdf_quote,
 )
+from geekcurio_print_manager.utils.formatting import display_project_name
 from geekcurio_print_manager.models.print_job import FilamentUsage, PlateSummary, PrintJob
 from geekcurio_print_manager.models.pricing_config import PricingConfig
 from geekcurio_print_manager.models.pricing_profile import PricingProfile
@@ -32,6 +33,22 @@ def _repo() -> QuoteRepository:
     initialise_database(conn)
     return QuoteRepository(conn)
 
+
+# ── display_project_name ──────────────────────────────────────────────────────
+
+def test_display_project_name_strips_gcode_and_3mf():
+    assert display_project_name("DriftPostBase.gcode.3mf") == "DriftPostBase"
+
+
+def test_display_project_name_strips_3mf_only():
+    assert display_project_name("DriftPostBase.3mf") == "DriftPostBase"
+
+
+def test_display_project_name_leaves_plain_name_unchanged():
+    assert display_project_name("normal-project-name") == "normal-project-name"
+
+
+# ── Test helpers ──────────────────────────────────────────────────────────────
 
 def _profile(**overrides) -> PricingProfile:
     defaults = dict(name="fdm_pla", label="FDM - PLA (Standard)", config=PricingConfig())

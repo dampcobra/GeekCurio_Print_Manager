@@ -13,7 +13,7 @@ from fpdf import FPDF
 from geekcurio_print_manager.models.print_job import PlateSummary
 from geekcurio_print_manager.models.quote import QuoteBreakdown
 from geekcurio_print_manager.models.saved_quote import SavedQuote
-from geekcurio_print_manager.utils.formatting import format_weight
+from geekcurio_print_manager.utils.formatting import display_project_name, format_weight
 
 # ── Page geometry ──────────────────────────────────────────────────────────────
 _A4_W    = 210
@@ -224,7 +224,7 @@ def build_pdf_quote(saved_quote: SavedQuote, output_path: Path) -> None:
 
     bd       = saved_quote.breakdown
     plates   = saved_quote.plates
-    src_stem = Path(saved_quote.source_file).stem   # strip .3mf for display
+    src_stem = display_project_name(saved_quote.source_file)
 
     pdf = _QuotePDF()
     pdf.set_auto_page_break(auto=True, margin=20)
