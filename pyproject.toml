@@ -17,3 +17,6 @@ geekcurio-quote-pdf = "geekcurio_print_manager.app:pdf_quote_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"geekcurio_print_manager" = ["assets/branding/*.png"]
