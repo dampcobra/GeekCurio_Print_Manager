@@ -59,8 +59,11 @@ Each package has exactly one reason to change:
 - **`exporters/`** — turns model objects into external representations. `text_export.py` formats a
   `PrintJob` as TXT/CSV. `quote_export.py` (Milestone 2) formats a `PrintJob` + `QuoteBreakdown`
   as a human-readable quote report; it accepts an optional `quote_ref` so the assigned reference
-  number appears in the output after a quote is saved. Neither exporter knows how the job was
-  obtained. Milestone 4's PDF export will be a new file in this package alongside both.
+  number appears in the output after a quote is saved. `pdf_quote_export.py` (Milestone 4) accepts
+  a `SavedQuote` and an output `Path` and writes a customer-facing PDF using `fpdf2`. The PDF
+  exporter has no knowledge of `QuoteService`, `QuoteRepository`, or pricing rules — it renders
+  only what the `SavedQuote` already contains, so historical accuracy is guaranteed by construction.
+  Parent directories are created automatically. No exporter knows how the job was obtained.
 - **`ui/`** — presentation only. `console.py` is Milestone 1's entire interface: read a path, call
   the service, print the result or the error. It contains no business logic, so when Phase 3
   introduces PySide6, the GUI becomes a new `ui/qt/` subpackage that calls the exact same
@@ -87,13 +90,9 @@ terminal line, with no changes to `services/` or `parsers/`.
 
 ## Extension points for later milestones
 
-- **Milestone 4 (PDF quotes)** — add `exporters/pdf_export.py`. It will consume `SavedQuote`
-  records retrieved via `QuoteRepository.get_by_ref()`, so the PDF always reflects the exact data
-  that was stored — not a transient recalculation. Per-plate detail is already persisted in
-  `quote_plates` / `quote_plate_filaments` ready for use.
 - **Milestone 5 (GUI)** — a `ui/qt/` subpackage calling the same `InspectionService`,
-  `QuoteService`, and `QuoteRepository` the console already uses. The console CLI keeps working
-  unchanged alongside it.
+  `QuoteService`, `QuoteRepository`, and `build_pdf_quote` the console already uses. The console
+  CLIs keep working unchanged alongside it.
 - **Future (Customers, Orders, Inventory)** — new service and model files. `QuoteRepository` can
   gain a `customer_id` foreign key when the customers table exists; no changes to existing columns
   required. `PrintJob.filament_totals_by_material()` is the natural integration point for inventory

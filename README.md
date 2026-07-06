@@ -4,7 +4,7 @@ A desktop application that automates the administrative side of GeekCurio's 3D p
 workflow — quoting, packing lists, print queue, and inventory — while leaving engineering and
 slicing decisions to the operator.
 
-This repository implements three milestones:
+This repository implements four milestones:
 
 - **Milestone 1 — 3MF Project Inspector**: parse a `.3mf` file exported from Bambu Studio or
   OrcaSlicer and extract print time, material usage, and per-plate detail.
@@ -14,6 +14,8 @@ This repository implements three milestones:
   SQLite database (`%LOCALAPPDATA%\GeekCurio\GCPM\gcpm.sqlite`) and assigned a permanent
   reference number in the format `GCQ-YYYY-NNNNNN` (e.g. `GCQ-2026-000001`). The sequence never
   resets. Profile values are snapshotted at save time so historical quotes are immutable.
+- **Milestone 4 — PDF Quote Output**: export any saved quote to a customer-facing PDF using its
+  reference number. PDFs are generated from the persisted record — pricing is never recalculated.
 
 See `docs/architecture.md` for how the codebase is organised and how later milestones (PDF export,
 GUI) are expected to build on this foundation.
@@ -99,6 +101,26 @@ job = InspectionService().inspect("my-project.3mf")
 breakdown = QuoteService(config).calculate(job)
 print(build_quote_report(job, breakdown))
 ```
+
+### PDF Quote Generator
+
+Generate a customer-facing PDF from any saved quote reference:
+
+```
+geekcurio-quote-pdf GCQ-2026-000001
+```
+
+This creates `GCQ-2026-000001.pdf` in the current directory.
+
+Specify an output path with `--output` (or `-o`):
+
+```
+geekcurio-quote-pdf GCQ-2026-000001 --output quotes\asim-project.pdf
+```
+
+If the output path points to an existing directory, the PDF is placed inside it using the
+reference as the filename. Parent directories are created automatically if they do not exist.
+The PDF always reflects the values that were saved — totals are never recalculated.
 
 Drop real exported `.3mf` files into `Sample Projects/` for manual testing — that folder is
 gitignored aside from a placeholder, so it's a safe scratch space for your own project files.

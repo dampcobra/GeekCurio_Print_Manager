@@ -5,6 +5,7 @@ from geekcurio_print_manager.db.schema import initialise_database
 from geekcurio_print_manager.services.inspection_service import InspectionService
 from geekcurio_print_manager.services.quote_repository import QuoteRepository
 from geekcurio_print_manager.ui.console import run
+from geekcurio_print_manager.ui.pdf_quote_console import run_pdf_quote
 from geekcurio_print_manager.ui.quote_console import run_quote
 
 
@@ -18,5 +19,14 @@ def quote_main() -> None:
     initialise_database(conn)
     repo = QuoteRepository(conn)
     result = run_quote(InspectionService(), repo, sys.argv[1:])
+    conn.close()
+    sys.exit(result)
+
+
+def pdf_quote_main() -> None:
+    conn = open_connection()
+    initialise_database(conn)
+    repo = QuoteRepository(conn)
+    result = run_pdf_quote(repo, sys.argv[1:])
     conn.close()
     sys.exit(result)
