@@ -224,7 +224,11 @@ def build_pdf_quote(saved_quote: SavedQuote, output_path: Path) -> None:
 
     bd       = saved_quote.breakdown
     plates   = saved_quote.plates
-    src_stem = display_project_name(saved_quote.source_file)
+
+    # Use explicit project_name if set; fall back to a cleaned display name from source_file.
+    # Normalise defensively — the field should already be None if blank, but guard here too.
+    project_display  = (saved_quote.project_name or "").strip() or display_project_name(saved_quote.source_file)
+    customer_display = (saved_quote.customer_name or "").strip() or None
 
     pdf = _QuotePDF()
     pdf.set_auto_page_break(auto=True, margin=20)
@@ -250,7 +254,9 @@ def build_pdf_quote(saved_quote: SavedQuote, output_path: Path) -> None:
         pdf.cell(120, 5, value, align="L")
         pdf.ln(5)
 
-    _meta("Project:",   src_stem)
+    _meta("Project:",   project_display)
+    if customer_display:
+        _meta("Customer:",  customer_display)
     _meta("Quote Ref:", saved_quote.quote_ref)
     _meta("Issued:",    _format_date(saved_quote.created_at))
     pdf.ln(6)
@@ -265,7 +271,7 @@ def build_pdf_quote(saved_quote: SavedQuote, output_path: Path) -> None:
 
     # ── Introduction paragraph ───────────────────────────────────────────────
     intro = (
-        f"Thank you for asking GeekCurio to produce your {src_stem}. "
+        f"Thank you for asking GeekCurio to produce your {project_display}. "
         "Following complete slicing and production planning, the project has been "
         "fully itemised below."
     )

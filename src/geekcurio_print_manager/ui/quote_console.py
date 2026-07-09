@@ -45,6 +45,14 @@ def run_quote(
         "--list", dest="list_profiles", action="store_true",
         help="List available pricing profiles and exit",
     )
+    parser.add_argument(
+        "--customer", metavar="NAME", default=None,
+        help="Customer name to include on the PDF quotation (optional)",
+    )
+    parser.add_argument(
+        "--project", metavar="NAME", default=None,
+        help="Display name for the project on the PDF quotation (overrides the filename)",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     if args.list_profiles:
@@ -64,7 +72,15 @@ def run_quote(
         print(f"Error: {exc}")
         return 1
 
+    # Normalise: blank or whitespace-only values are treated as absent.
+    customer_name = (args.customer or "").strip() or None
+    project_name  = (args.project  or "").strip() or None
+
     breakdown = QuoteService(profile.config).calculate(job)
-    saved = repository.save(job, breakdown, profile)
+    saved = repository.save(
+        job, breakdown, profile,
+        customer_name=customer_name,
+        project_name=project_name,
+    )
     print(build_quote_report(job, breakdown, profile_label=profile.label, quote_ref=saved.quote_ref))
     return 0

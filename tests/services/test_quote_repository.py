@@ -188,6 +188,56 @@ def test_notes_none_round_trips_as_none(repo):
     assert retrieved.notes is None
 
 
+def test_customer_name_defaults_to_none(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile)
+    assert saved.customer_name is None
+
+
+def test_project_name_defaults_to_none(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile)
+    assert saved.project_name is None
+
+
+def test_customer_name_is_persisted_and_retrieved(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile, customer_name="Asim")
+    assert saved.customer_name == "Asim"
+    retrieved = repo.get_by_ref(saved.quote_ref)
+    assert retrieved.customer_name == "Asim"
+
+
+def test_project_name_is_persisted_and_retrieved(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile, project_name="4th Planet Battle Doggo")
+    assert saved.project_name == "4th Planet Battle Doggo"
+    retrieved = repo.get_by_ref(saved.quote_ref)
+    assert retrieved.project_name == "4th Planet Battle Doggo"
+
+
+def test_source_file_unchanged_when_project_name_set(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile, project_name="Custom Display Name")
+    assert saved.source_file == "test-part.3mf"
+    retrieved = repo.get_by_ref(saved.quote_ref)
+    assert retrieved.source_file == "test-part.3mf"
+
+
+def test_customer_and_project_name_none_round_trips(repo):
+    profile = _profile()
+    breakdown = QuoteService(profile.config).calculate(_job())
+    saved = repo.save(_job(), breakdown, profile, customer_name=None, project_name=None)
+    retrieved = repo.get_by_ref(saved.quote_ref)
+    assert retrieved.customer_name is None
+    assert retrieved.project_name is None
+
+
 def test_multiplate_job_persists_all_plates(repo):
     job = PrintJob(
         source_path=Path("multiplate.3mf"),

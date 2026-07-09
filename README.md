@@ -16,6 +16,9 @@ This repository implements four milestones:
   resets. Profile values are snapshotted at save time so historical quotes are immutable.
 - **Milestone 4 — PDF Quote Output**: export any saved quote to a customer-facing PDF using its
   reference number. PDFs are generated from the persisted record — pricing is never recalculated.
+- **Milestone 4.2 — Customer and Project Display Names**: optional `--customer` and `--project`
+  arguments allow clean, human-readable names on the PDF without altering the stored source
+  filename.
 
 See `docs/architecture.md` for how the codebase is organised and how later milestones (PDF export,
 GUI) are expected to build on this foundation.
@@ -72,6 +75,21 @@ geekcurio-quote --list
 ```
 
 Available profiles: `fdm_pla` (default), `fdm_petg`, `resin`, `premium_fdm`, `internal_test`.
+
+**Optional: customer and project display names**
+
+Use `--customer` and `--project` to attach human-readable names to a quote. These are saved with
+the quote and used on the PDF — they do not affect pricing and do not change the stored source
+filename.
+
+```
+geekcurio-quote "Sample Projects\DriftPostBase.gcode.3mf" --customer "Asim" --project "4th Planet Battle Doggo"
+```
+
+- `--customer NAME` — adds a `Customer:` line to the PDF (omitted if not provided).
+- `--project NAME` — overrides the project display name on the PDF (falls back to the cleaned
+  filename if not provided: `DriftPostBase.gcode.3mf` → `DriftPostBase`).
+- Blank or whitespace-only values are treated as absent.
 
 Every quote is automatically saved and assigned a reference number (`GCQ-YYYY-NNNNNN`), which
 appears in the output:

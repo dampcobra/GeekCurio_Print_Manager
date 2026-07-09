@@ -44,6 +44,10 @@ def test_display_project_name_strips_3mf_only():
     assert display_project_name("DriftPostBase.3mf") == "DriftPostBase"
 
 
+def test_display_project_name_strips_gcode_only():
+    assert display_project_name("MyCoolModel.gcode") == "MyCoolModel"
+
+
 def test_display_project_name_leaves_plain_name_unchanged():
     assert display_project_name("normal-project-name") == "normal-project-name"
 
@@ -402,3 +406,123 @@ def test_pdf_recommendation_omitted_for_single_plate(pdf_path):
 
 def test_pdf_contains_closing_line(pdf_path):
     assert "Thank you for considering GeekCurio" in _pdf_text(pdf_path)
+
+
+# ── Customer and project display names (M4.2) ─────────────────────────────────
+
+def test_pdf_uses_project_name_when_provided(tmp_path):
+    repo = _repo()
+    profile = _profile()
+    job = _job()
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile, project_name="4th Planet Battle Doggo")
+
+    path = tmp_path / "project_name.pdf"
+    build_pdf_quote(saved, path)
+    text = _pdf_text(path)
+    assert "4th Planet Battle Doggo" in text
+
+
+def test_pdf_project_name_overrides_source_stem(tmp_path):
+    repo = _repo()
+    profile = _profile()
+    job = _job()  # source_path = TestPart.3mf
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile, project_name="Custom Display Name")
+
+    path = tmp_path / "override.pdf"
+    build_pdf_quote(saved, path)
+    text = _pdf_text(path)
+    assert "Custom Display Name" in text
+    assert "TestPart" not in text
+
+
+def test_pdf_falls_back_to_cleaned_source_name_when_project_name_absent(tmp_path):
+    repo = _repo()
+    profile = _profile()
+    job = PrintJob(
+        source_path=Path("DriftPostBase.gcode.3mf"),
+        slicer="BambuStudio",
+        plates=_job().plates,
+    )
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile)
+
+    path = tmp_path / "fallback.pdf"
+    build_pdf_quote(saved, path)
+    text = _pdf_text(path)
+    assert "DriftPostBase" in text
+    assert ".gcode" not in text
+    assert ".3mf" not in text
+
+
+def test_pdf_shows_customer_name_when_provided(tmp_path):
+    repo = _repo()
+    profile = _profile()
+    job = _job()
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile, customer_name="Asim")
+
+    path = tmp_path / "customer.pdf"
+    build_pdf_quote(saved, path)
+    assert "Asim" in _pdf_text(path)
+
+
+def test_pdf_shows_customer_label_when_name_provided(tmp_path):
+    repo = _repo()
+    profile = _profile()
+    job = _job()
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile, customer_name="Asim")
+
+    path = tmp_path / "customer_label.pdf"
+    build_pdf_quote(saved, path)
+    assert "Customer" in _pdf_text(path)
+
+
+def test_pdf_omits_customer_line_when_name_absent(pdf_path):
+    assert "Customer" not in _pdf_text(pdf_path)
+
+
+def test_pdf_omits_customer_line_for_blank_name(tmp_path):
+    # SavedQuote constructed directly with an empty string (defensive: exporter normalises it)
+    repo = _repo()
+    profile = _profile()
+    job = _job()
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile, customer_name=None)
+
+    path = tmp_path / "no_customer.pdf"
+    build_pdf_quote(saved, path)
+    assert "Customer" not in _pdf_text(path)
+
+
+def test_source_file_unchanged_when_project_name_provided(tmp_path):
+    repo = _repo()
+    profile = _profile()
+    job = _job()  # source_path = TestPart.3mf
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile, project_name="Override Name")
+
+    assert saved.source_file == "TestPart.3mf"
+
+
+def test_existing_quote_without_display_names_loads_correctly(tmp_path):
+    # Quotes saved before M4.2 have customer_name=None and project_name=None.
+    # They must render cleanly, falling back to the cleaned source filename.
+    repo = _repo()
+    profile = _profile()
+    job = _job()
+    breakdown = QuoteService(profile.config).calculate(job)
+    saved = repo.save(job, breakdown, profile)  # no customer_name or project_name
+
+    assert saved.customer_name is None
+    assert saved.project_name is None
+
+    path = tmp_path / "legacy.pdf"
+    build_pdf_quote(saved, path)
+    text = _pdf_text(path)
+    # Falls back to cleaned source stem
+    assert "TestPart" in text
+    # No blank customer line
+    assert "Customer" not in text

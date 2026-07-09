@@ -18,6 +18,8 @@ class QuoteRepository:
         breakdown: QuoteBreakdown,
         profile: PricingProfile,
         notes: str | None = None,
+        customer_name: str | None = None,
+        project_name: str | None = None,
     ) -> SavedQuote:
         created_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -29,8 +31,8 @@ class QuoteRepository:
                 print_time_s, total_weight_g,
                 print_time_cost, material_cost, overhead_multiplier,
                 markup_percentage, subtotal, markup_amount, total,
-                notes
-            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                notes, customer_name, project_name
+            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 created_at,
@@ -48,6 +50,8 @@ class QuoteRepository:
                 str(breakdown.markup_amount),
                 str(breakdown.total),
                 notes,
+                customer_name,
+                project_name,
             ),
         )
         quote_id = cursor.lastrowid
@@ -92,6 +96,8 @@ class QuoteRepository:
             breakdown=breakdown,
             plates=job.plates,
             notes=notes,
+            customer_name=customer_name,
+            project_name=project_name,
         )
 
     def get_by_ref(self, quote_ref: str) -> SavedQuote | None:
@@ -130,6 +136,8 @@ class QuoteRepository:
             breakdown=breakdown,
             plates=self._load_plates(row["id"]),
             notes=row["notes"],
+            customer_name=row["customer_name"],
+            project_name=row["project_name"],
         )
 
     def _load_plates(self, quote_id: int) -> tuple[PlateSummary, ...]:

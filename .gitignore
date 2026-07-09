@@ -19,6 +19,9 @@ htmlcov/
 .vscode/
 .idea/
 
+# Generated PDF output (quote artefacts; never committed)
+*.pdf
+
 # Local sample project files (keep the folder, ignore its contents)
 Sample Projects/*
 !Sample Projects/.gitkeep

@@ -15,3 +15,5 @@ class SavedQuote:
     breakdown: QuoteBreakdown
     plates: tuple[PlateSummary, ...]
     notes: str | None = None
+    customer_name: str | None = None
+    project_name: str | None = None

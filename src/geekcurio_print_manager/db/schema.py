@@ -1,6 +1,6 @@
 import sqlite3
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def initialise_database(conn: sqlite3.Connection) -> None:
@@ -27,7 +27,9 @@ def initialise_database(conn: sqlite3.Connection) -> None:
             subtotal            TEXT    NOT NULL,
             markup_amount       TEXT    NOT NULL,
             total               TEXT    NOT NULL,
-            notes               TEXT
+            notes               TEXT,
+            customer_name       TEXT,
+            project_name        TEXT
         );
 
         CREATE TABLE IF NOT EXISTS quote_plates (
@@ -68,3 +70,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         if "notes" not in cols:
             conn.execute("ALTER TABLE quotes ADD COLUMN notes TEXT")
         conn.execute("UPDATE _meta SET value = '2' WHERE key = 'schema_version'")
+        current = 2
+
+    if current < 3:
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(quotes)").fetchall()}
+        if "customer_name" not in cols:
+            conn.execute("ALTER TABLE quotes ADD COLUMN customer_name TEXT")
+        if "project_name" not in cols:
+            conn.execute("ALTER TABLE quotes ADD COLUMN project_name TEXT")
+        conn.execute("UPDATE _meta SET value = '3' WHERE key = 'schema_version'")
