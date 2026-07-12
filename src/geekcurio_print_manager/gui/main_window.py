@@ -1,4 +1,4 @@
-"""M5.0 main window — quote generator."""
+"""M5.1 main window — quote generator with PDF export."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
 )
 
 from geekcurio_print_manager.db.database import open_connection
+from geekcurio_print_manager.exporters.pdf_quote_export import build_pdf_quote
+from geekcurio_print_manager.models.saved_quote import SavedQuote
 from geekcurio_print_manager.db.schema import initialise_database
 from geekcurio_print_manager.exceptions import PrintManagerError
 from geekcurio_print_manager.models.pricing_profile import BUILTIN_PROFILES
@@ -36,6 +38,7 @@ class QuoteGeneratorWindow(QMainWindow):
         conn = open_connection()
         initialise_database(conn)
         self._repo = QuoteRepository(conn)
+        self._last_saved: SavedQuote | None = None
 
         self._build_ui()
 
@@ -103,6 +106,11 @@ class QuoteGeneratorWindow(QMainWindow):
 
         root.addLayout(result_form)
 
+        self._pdf_btn = QPushButton("Generate PDF")
+        self._pdf_btn.setEnabled(False)
+        self._pdf_btn.clicked.connect(self._generate_pdf)
+        root.addWidget(self._pdf_btn)
+
         self._status_label = QLabel("")
         self._status_label.setWordWrap(True)
         root.addWidget(self._status_label)
@@ -151,6 +159,9 @@ class QuoteGeneratorWindow(QMainWindow):
         total_s = sum(p.print_time_s for p in saved.plates)
         total_g = sum(p.weight_g for p in saved.plates)
 
+        self._last_saved = saved
+        self._pdf_btn.setEnabled(True)
+
         self._ref_label.setText(saved.quote_ref)
         self._total_label.setText(f"\xa3{saved.breakdown.total:.2f}")
         self._time_label.setText(format_duration_hm(total_s))
@@ -162,6 +173,30 @@ class QuoteGeneratorWindow(QMainWindow):
     def _clear_status(self) -> None:
         self._status_label.setText("")
         self._status_label.setStyleSheet("")
+
+    def _generate_pdf(self) -> None:
+        if self._last_saved is None:
+            return
+
+        default_path = str(Path.cwd() / f"{self._last_saved.quote_ref}.pdf")
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save PDF Quote",
+            default_path,
+            "PDF Files (*.pdf)",
+        )
+        if not path:
+            return
+
+        self._clear_status()
+        try:
+            build_pdf_quote(self._last_saved, Path(path))
+        except Exception as exc:
+            self._set_error(f"PDF export failed: {exc}")
+            return
+
+        self._status_label.setText(f"PDF saved: {Path(path).name}")
+        self._status_label.setStyleSheet("color: green;")
 
     def _set_error(self, message: str) -> None:
         self._status_label.setText(message)
