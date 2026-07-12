@@ -178,14 +178,15 @@ GeekCurio_Print_Manager/
 │   │   └── pdf_quote_export.py        ← customer-facing PDF (fpdf2)
 │   ├── gui/                           ← M5 PySide6 desktop GUI
 │   │   ├── __init__.py
-│   │   └── main_window.py             ← QuoteGeneratorWindow (QMainWindow)
+│   │   ├── main_window.py             ← QuoteGeneratorWindow (QMainWindow), tabbed shell
+│   │   └── history_widget.py          ← QuoteHistoryWidget (M5.2+): recent quotes table, detail area, PDF export
 │   ├── ui/
 │   │   ├── console.py                 ← M1 inspector console (run())
 │   │   ├── quote_console.py           ← M2/M3 quote + save console (run_quote())
 │   │   └── pdf_quote_console.py       ← M4 PDF generation console (run_pdf_quote())
 │   └── utils/
 │       ├── archive.py                 ← open_archive(), ensure_3mf_skeleton()
-│       └── formatting.py             ← display_project_name(), format_duration(), format_weight()
+│       └── formatting.py             ← display_project_name(), format_duration(), format_duration_hm(), format_weight()
 └── tests/
     ├── conftest.py                    ← shared pytest fixtures
     ├── fixtures/slice_info_builder.py ← build_fake_3mf() in-memory archive factory
@@ -683,16 +684,37 @@ Sample `.3mf` files are available in `Sample Projects/` (gitignored). These shou
 - `PySide6` added to `pyproject.toml` dependencies (resolves prior tech debt).
 - `gui/` subpackage added; CLI `ui/` layer untouched.
 
+**Milestone 5.1 — PDF Export in GUI**
+- Generate PDF button added to the New Quote tab; disabled until a quote has been saved.
+- `QFileDialog.getSaveFileName` defaults to `{quote_ref}.pdf` in the current working directory.
+- Calls `build_pdf_quote()` unchanged — no recalculation.
+- Duration display uses `format_duration_hm()` (ceiling-to-minute, shared with PDF exporter).
+
+**Milestone 5.2 — Quote History Browser**
+- New `QuoteHistoryWidget` (`gui/history_widget.py`) showing the 20 most recent quotes.
+- Window adopts a `QTabWidget`: Tab 1 = New Quote, Tab 2 = Quote History.
+- History columns: Ref, Issued, Customer, Project, Total. Switching to the tab triggers `refresh()`.
+- Selecting a row populates a detail area (Ref, Customer, Project, Total, Print Time, Filament, Plates) and enables Generate PDF.
+- Project display: explicit `project_name` shown as-is; falls back to `display_project_name(source_file)` only when absent.
+- Row identity stored via `Qt.ItemDataRole.UserRole` (not displayed text) to survive column truncation.
+- Input change on the New Quote tab resets result labels, disables Generate PDF, and forgets the saved quote reference.
+- Empty state shows a calm label; no crash or error.
+
+**Milestone 5.3 — Open PDF Button**
+- Both tabs gain an Open PDF button, enabled after a successful PDF export.
+- Uses `QDesktopServices.openUrl(QUrl.fromLocalFile(path))` — OS default PDF viewer.
+- Handles `False` return (viewer launch failed) and missing/deleted file with friendly status messages.
+- Cancelling the save dialog leaves any prior Open PDF state intact.
+- New Quote tab: Open PDF clears on any input change. History tab: clears on row change.
+
 ### Current Milestone
 
-**Milestone 5.0 is complete.** The desktop GUI is operational. The full quote pipeline runs via `geekcurio-app`.
+**Milestone 5.3 is complete.** The desktop GUI covers the full workflow: file → quote → PDF export → open in viewer, with a history browser for all recent quotes. 152 tests passing.
 
 ### Upcoming Milestones
 
-**Milestone 5.x — GUI Enhancements** *(planned)*
-- PDF export button in the GUI window.
-- Quote history browser.
-- Styling / theme work.
+**Milestone 5.x — GUI Polish** *(planned)*
+- Styling / theme work (fonts, spacing, colour palette).
 
 **Milestone 6 — Packing List Generator** *(planned)*
 - Generate a packing list document from a saved quote.
