@@ -1,8 +1,10 @@
-"""M5.2 main window — tabbed quote generator and history browser."""
+"""M5.3 main window — tabbed quote generator and history browser."""
 from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -41,6 +43,7 @@ class QuoteGeneratorWindow(QMainWindow):
         initialise_database(conn)
         self._repo = QuoteRepository(conn)
         self._last_saved: SavedQuote | None = None
+        self._last_pdf_path: Path | None = None
 
         self._build_ui()
 
@@ -126,6 +129,11 @@ class QuoteGeneratorWindow(QMainWindow):
         self._pdf_btn.setEnabled(False)
         self._pdf_btn.clicked.connect(self._generate_pdf)
         root.addWidget(self._pdf_btn)
+
+        self._open_pdf_btn = QPushButton("Open PDF")
+        self._open_pdf_btn.setEnabled(False)
+        self._open_pdf_btn.clicked.connect(self._open_pdf)
+        root.addWidget(self._open_pdf_btn)
 
         self._status_label = QLabel("")
         self._status_label.setWordWrap(True)
@@ -213,12 +221,25 @@ class QuoteGeneratorWindow(QMainWindow):
             self._set_error(f"PDF export failed: {exc}")
             return
 
+        self._last_pdf_path = Path(path)
+        self._open_pdf_btn.setEnabled(True)
         self._status_label.setText(f"PDF saved: {Path(path).name}")
         self._status_label.setStyleSheet("color: green;")
 
+    def _open_pdf(self) -> None:
+        if self._last_pdf_path is None:
+            return
+        if not self._last_pdf_path.exists():
+            self._set_error("PDF file not found. It may have been moved or deleted.")
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._last_pdf_path))):
+            self._set_error("Could not open PDF. Please open it manually.")
+
     def _reset_quote_state(self) -> None:
         self._last_saved = None
+        self._last_pdf_path = None
         self._pdf_btn.setEnabled(False)
+        self._open_pdf_btn.setEnabled(False)
         self._ref_label.setText("—")
         self._total_label.setText("—")
         self._time_label.setText("—")

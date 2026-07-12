@@ -1,9 +1,10 @@
-"""M5.2 quote history browser widget."""
+"""M5.3 quote history browser widget."""
 from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
@@ -48,6 +49,7 @@ class QuoteHistoryWidget(QWidget):
         self._repo = repo
         self._quotes: list[SavedQuote] = []
         self._selected: SavedQuote | None = None
+        self._last_pdf_path: Path | None = None
         self._build_ui()
 
     def refresh(self) -> None:
@@ -115,6 +117,11 @@ class QuoteHistoryWidget(QWidget):
         self._pdf_btn.clicked.connect(self._generate_pdf)
         root.addWidget(self._pdf_btn)
 
+        self._open_pdf_btn = QPushButton("Open PDF")
+        self._open_pdf_btn.setEnabled(False)
+        self._open_pdf_btn.clicked.connect(self._open_pdf)
+        root.addWidget(self._open_pdf_btn)
+
         self._status_label = QLabel("")
         self._status_label.setWordWrap(True)
         root.addWidget(self._status_label)
@@ -122,7 +129,9 @@ class QuoteHistoryWidget(QWidget):
     def _populate_table(self) -> None:
         self._table.setRowCount(0)
         self._selected = None
+        self._last_pdf_path = None
         self._pdf_btn.setEnabled(False)
+        self._open_pdf_btn.setEnabled(False)
         self._status_label.setText("")
 
         if not self._quotes:
@@ -162,7 +171,11 @@ class QuoteHistoryWidget(QWidget):
         )
         if self._selected is None:
             self._pdf_btn.setEnabled(False)
+            self._open_pdf_btn.setEnabled(False)
             return
+
+        self._last_pdf_path = None
+        self._open_pdf_btn.setEnabled(False)
 
         q = self._selected
         total_s = sum(p.print_time_s for p in q.plates)
@@ -202,5 +215,18 @@ class QuoteHistoryWidget(QWidget):
             self._status_label.setStyleSheet("color: red;")
             return
 
+        self._last_pdf_path = Path(path)
+        self._open_pdf_btn.setEnabled(True)
         self._status_label.setText(f"PDF saved: {Path(path).name}")
         self._status_label.setStyleSheet("color: green;")
+
+    def _open_pdf(self) -> None:
+        if self._last_pdf_path is None:
+            return
+        if not self._last_pdf_path.exists():
+            self._status_label.setText("PDF file not found. It may have been moved or deleted.")
+            self._status_label.setStyleSheet("color: red;")
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._last_pdf_path))):
+            self._status_label.setText("Could not open PDF. Please open it manually.")
+            self._status_label.setStyleSheet("color: red;")
