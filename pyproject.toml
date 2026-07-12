@@ -8,12 +8,13 @@ version = "0.1.0"
 description = "Automates the administrative side of GeekCurio's 3D printing workflow."
 requires-python = ">=3.13"
 readme = "README.md"
-dependencies = ["platformdirs>=4.0", "fpdf2>=2.7.0"]
+dependencies = ["platformdirs>=4.0", "fpdf2>=2.7.0", "PySide6>=6.0"]
 
 [project.scripts]
 geekcurio-print-manager = "geekcurio_print_manager.app:main"
 geekcurio-quote = "geekcurio_print_manager.app:quote_main"
 geekcurio-quote-pdf = "geekcurio_print_manager.app:pdf_quote_main"
+geekcurio-app = "geekcurio_print_manager.app:gui_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

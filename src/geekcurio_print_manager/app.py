@@ -30,3 +30,12 @@ def pdf_quote_main() -> None:
     result = run_pdf_quote(repo, sys.argv[1:])
     conn.close()
     sys.exit(result)
+
+
+def gui_main() -> None:
+    from PySide6.QtWidgets import QApplication
+    from geekcurio_print_manager.gui.main_window import QuoteGeneratorWindow
+    app = QApplication(sys.argv)
+    window = QuoteGeneratorWindow()
+    window.show()
+    sys.exit(app.exec())

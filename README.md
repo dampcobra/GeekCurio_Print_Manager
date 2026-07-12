@@ -4,7 +4,7 @@ A desktop application that automates the administrative side of GeekCurio's 3D p
 workflow — quoting, packing lists, print queue, and inventory — while leaving engineering and
 slicing decisions to the operator.
 
-This repository implements four milestones:
+This repository implements the following milestones:
 
 - **Milestone 1 — 3MF Project Inspector**: parse a `.3mf` file exported from Bambu Studio or
   OrcaSlicer and extract print time, material usage, and per-plate detail.
@@ -19,6 +19,9 @@ This repository implements four milestones:
 - **Milestone 4.2 — Customer and Project Display Names**: optional `--customer` and `--project`
   arguments allow clean, human-readable names on the PDF without altering the stored source
   filename.
+- **Milestone 5 — Desktop GUI**: a native PySide6 window that replaces the CLI workflow for
+  day-to-day use. All existing services, repositories, and exporters are reused without
+  modification.
 
 See `docs/architecture.md` for how the codebase is organised and how later milestones (PDF export,
 GUI) are expected to build on this foundation.
@@ -119,6 +122,18 @@ job = InspectionService().inspect("my-project.3mf")
 breakdown = QuoteService(config).calculate(job)
 print(build_quote_report(job, breakdown))
 ```
+
+### Desktop App (GUI)
+
+Launch the desktop quote generator window:
+
+```
+geekcurio-app
+```
+
+This opens a native window where you can browse for a `.3mf` file, select a pricing profile,
+optionally enter a customer name and project name, and click **Generate Quote**. The quote is
+saved to the database and the reference number and summary are shown in the window.
 
 ### PDF Quote Generator
 

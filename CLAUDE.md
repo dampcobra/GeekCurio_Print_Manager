@@ -35,7 +35,7 @@ The core workflow is:
 .3mf project file → parse print metadata → calculate quote → save to database → export customer PDF
 ```
 
-Today this workflow is entirely CLI-driven. The architecture is explicitly designed to be lifted into a PySide6 desktop GUI in a future phase without changing the service or data layer.
+As of Milestone 5, the primary interface is a PySide6 desktop GUI (`geekcurio-app`). The CLI commands remain available. The service, data, and exporter layers are shared by both interfaces and contain no UI code.
 
 ### Business Goals
 
@@ -176,6 +176,9 @@ GeekCurio_Print_Manager/
 │   │   ├── text_export.py             ← text report and CSV generation
 │   │   ├── quote_export.py            ← terminal quote display
 │   │   └── pdf_quote_export.py        ← customer-facing PDF (fpdf2)
+│   ├── gui/                           ← M5 PySide6 desktop GUI
+│   │   ├── __init__.py
+│   │   └── main_window.py             ← QuoteGeneratorWindow (QMainWindow)
 │   ├── ui/
 │   │   ├── console.py                 ← M1 inspector console (run())
 │   │   ├── quote_console.py           ← M2/M3 quote + save console (run_quote())
@@ -212,6 +215,7 @@ Three CLI commands are registered in `pyproject.toml`:
 | `geekcurio-print-manager` | `app:main` | Inspect a `.3mf` file; optionally export TXT / CSV |
 | `geekcurio-quote` | `app:quote_main` | Generate and save a quote; supports pricing profiles |
 | `geekcurio-quote-pdf` | `app:pdf_quote_main` | Generate a customer PDF from a saved quote reference |
+| `geekcurio-app` | `app:gui_main` | Launch the PySide6 desktop GUI (M5+) |
 
 `python -m geekcurio_print_manager` also resolves to `app:main` via `__main__.py`.
 
@@ -671,17 +675,24 @@ Sample `.3mf` files are available in `Sample Projects/` (gitignored). These shou
 - Blank and whitespace-only values normalised to `None` at the CLI layer.
 - `source_file` is never mutated — original filename preserved for traceability.
 
+**Milestone 5.0 — Desktop GUI (Quote Generator Window)**
+- `geekcurio-app` entry point launches a PySide6 `QMainWindow`.
+- Single window: file picker, profile dropdown, customer/project fields, Generate Quote button, saved quote summary.
+- GUI calls `InspectionService` → `get_profile` → `QuoteService` → `QuoteRepository.save()` — identical to the CLI flow, no logic duplicated.
+- Blank customer/project fields normalised to `None` (same as CLI).
+- `PySide6` added to `pyproject.toml` dependencies (resolves prior tech debt).
+- `gui/` subpackage added; CLI `ui/` layer untouched.
+
 ### Current Milestone
 
-**Milestone 4.2 is complete.** The project is in a stable, working state. The entire pipeline from `.3mf` file to customer PDF is operational via CLI, including optional customer and project display names.
+**Milestone 5.0 is complete.** The desktop GUI is operational. The full quote pipeline runs via `geekcurio-app`.
 
 ### Upcoming Milestones
 
-**Milestone 5 — PySide6 Desktop GUI**
-- Replace the CLI with a native desktop window.
-- All existing services, models, and exporters are reused without modification.
-- UI screens: file picker, quote review, quote history, PDF export.
-- `PySide6` is already in `requirements.txt`, waiting.
+**Milestone 5.x — GUI Enhancements** *(planned)*
+- PDF export button in the GUI window.
+- Quote history browser.
+- Styling / theme work.
 
 **Milestone 6 — Packing List Generator** *(planned)*
 - Generate a packing list document from a saved quote.
@@ -741,9 +752,9 @@ If Google Drive integration is added in future, it should be for exporting compl
 
 ### 9.5 No Logging Framework Yet
 
-As of M4.1, there is no logging framework. All output is via `print()`. The rationale: with a single parser, a single UI mode, and a single developer, a logging framework would be speculative infrastructure. Adding it means deciding on log levels, handlers, formatters, and configuration — for a CLI tool that currently has one user.
+As of M5.0, there is no logging framework. CLI output uses `print()`; the GUI surfaces errors via status labels. With a single parser, two UI modes, and a single developer, a logging framework remains speculative infrastructure.
 
-When the GUI (M5) is built, the need for structured logging will become clearer. At that point, Python's `logging` module should be introduced consistently across all layers.
+The need for structured logging will become clearer as the GUI grows. When introduced, Python's `logging` module should be added consistently across all layers — not mixed with ad-hoc `print()` calls.
 
 ### 9.6 Why the src/ Layout Was Chosen
 
@@ -788,11 +799,9 @@ These are not planned or committed. They are captured here so they are not forgo
 
 ## 11. Known Technical Debt
 
-### 11.1 `requirements.txt` Contains PySide6 Prematurely
+### 11.1 ~~`requirements.txt` Contains PySide6 Prematurely~~ *(resolved in M5.0)*
 
-`PySide6` is listed in `requirements.txt` but not in `pyproject.toml` dependencies. It is unused until M5. A developer installing from `requirements.txt` will download a large dependency they do not yet need. This was left in place to signal the intent, but it creates a discrepancy between `requirements.txt` and `pyproject.toml`.
-
-**Resolution**: Once M5 begins, add `PySide6` to `pyproject.toml` and remove the discrepancy.
+`PySide6` was added to `pyproject.toml` as part of M5.0. The dependency is now declared in both `requirements.txt` and `pyproject.toml`, which is consistent and correct.
 
 ### 11.2 Plate Cost Allocation Is a Heuristic
 
