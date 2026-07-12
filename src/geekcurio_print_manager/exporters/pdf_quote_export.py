@@ -13,7 +13,7 @@ from fpdf import FPDF
 from geekcurio_print_manager.models.print_job import PlateSummary
 from geekcurio_print_manager.models.quote import QuoteBreakdown
 from geekcurio_print_manager.models.saved_quote import SavedQuote
-from geekcurio_print_manager.utils.formatting import display_project_name, format_weight
+from geekcurio_print_manager.utils.formatting import display_project_name, format_duration_hm, format_weight
 
 # ── Page geometry ──────────────────────────────────────────────────────────────
 _A4_W    = 210
@@ -55,14 +55,6 @@ def _format_date(iso_ts: str) -> str:
     from datetime import datetime, timezone
     dt = datetime.strptime(iso_ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
     return f"{dt.day} {dt.strftime('%B %Y')}"   # "2 July 2026"
-
-
-def _format_duration(seconds: int) -> str:
-    h, rem = divmod(int(seconds), 3600)
-    m = rem // 60
-    if h:
-        return f"{h}h {m:02d}m"
-    return f"{m}m"
 
 
 def _load_logo_bytes() -> bytes | None:
@@ -159,7 +151,7 @@ def _summary_table(
         pdf.ln(_ROW_H)
 
     _row("Build Plates",             str(len(plates)))
-    _row("Estimated Print Time",     _format_duration(total_time_s))
+    _row("Estimated Print Time",     format_duration_hm(total_time_s))
     _row("Estimated Filament",       f"Approximately {format_weight(total_weight_g)}")
     _row("Estimated Production Cost",
          f"\xa3{bd.total:.2f} (excluding postage)")
@@ -187,7 +179,7 @@ def _plate_table(
             str(plate.index),
             "Printed components",
             "1",
-            _format_duration(plate.print_time_s),
+            format_duration_hm(plate.print_time_s),
             format_weight(plate.weight_g),
             f"\xa3{cost:.2f}",
         )

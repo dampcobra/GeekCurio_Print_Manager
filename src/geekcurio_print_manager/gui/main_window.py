@@ -24,15 +24,7 @@ from geekcurio_print_manager.models.pricing_profile import BUILTIN_PROFILES
 from geekcurio_print_manager.services.inspection_service import InspectionService
 from geekcurio_print_manager.services.quote_repository import QuoteRepository
 from geekcurio_print_manager.services.quote_service import QuoteService
-from geekcurio_print_manager.utils.formatting import format_weight
-
-
-def _fmt_duration(seconds: int) -> str:
-    h, rem = divmod(int(seconds), 3600)
-    m = rem // 60
-    if h:
-        return f"{h}h {m:02d}m"
-    return f"{m}m"
+from geekcurio_print_manager.utils.formatting import format_duration_hm, format_weight
 
 
 class QuoteGeneratorWindow(QMainWindow):
@@ -161,7 +153,7 @@ class QuoteGeneratorWindow(QMainWindow):
 
         self._ref_label.setText(saved.quote_ref)
         self._total_label.setText(f"\xa3{saved.breakdown.total:.2f}")
-        self._time_label.setText(_fmt_duration(total_s))
+        self._time_label.setText(format_duration_hm(total_s))
         self._filament_label.setText(format_weight(total_g))
         self._plates_label.setText(str(len(saved.plates)))
         self._status_label.setText("Quote saved successfully.")
