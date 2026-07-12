@@ -131,6 +131,12 @@ class QuoteGeneratorWindow(QMainWindow):
         self._status_label.setWordWrap(True)
         root.addWidget(self._status_label)
 
+        # Reset displayed quote when any input changes
+        self._file_edit.textChanged.connect(self._reset_quote_state)
+        self._profile_combo.currentIndexChanged.connect(self._reset_quote_state)
+        self._customer_edit.textChanged.connect(self._reset_quote_state)
+        self._project_edit.textChanged.connect(self._reset_quote_state)
+
         return widget
 
     def _browse_file(self) -> None:
@@ -209,6 +215,16 @@ class QuoteGeneratorWindow(QMainWindow):
 
         self._status_label.setText(f"PDF saved: {Path(path).name}")
         self._status_label.setStyleSheet("color: green;")
+
+    def _reset_quote_state(self) -> None:
+        self._last_saved = None
+        self._pdf_btn.setEnabled(False)
+        self._ref_label.setText("—")
+        self._total_label.setText("—")
+        self._time_label.setText("—")
+        self._filament_label.setText("—")
+        self._plates_label.setText("—")
+        self._clear_status()
 
     def _clear_status(self) -> None:
         self._status_label.setText("")

@@ -112,7 +112,21 @@ error.
 
 ---
 
-## Step 8 — Project display uses explicit name, not filename cleaning
+## Step 8 — Input changes clear the previous quote state
+
+After a quote has been generated on the New Quote tab (result area shows ref, total, etc.):
+
+- Change the **Profile** dropdown to a different profile.
+
+**Expected:** Quote Ref / Total / Print Time / Filament / Plates all reset to `—`. Status message
+clears. **Generate PDF** button becomes disabled again.
+
+Repeat by changing the **Customer** or **Project Name** field, or picking a new file with
+**Browse…** — same reset behaviour in all cases.
+
+---
+
+## Step 10 — Project display uses explicit name, not filename cleaning
 
 In the history table and detail area, a quote saved with an explicit **Project Name** should
 display that name as-is (e.g. `4th Planet Battle Doggo`), not the cleaned source filename.
@@ -122,7 +136,7 @@ A quote saved without a project name should show the cleaned source filename
 
 ---
 
-## Step 9 — Run the test suite
+## Step 11 — Run the test suite
 
 ```
 pytest --tb=short -q
@@ -143,8 +157,10 @@ pytest --tb=short -q
 | 5 — Cancelling PDF dialog shows no false status | | |
 | 6 — Generate PDF from history works | | |
 | 7 — Empty state shown calmly (if applicable) | | |
-| 8 — Project name display correct | | |
-| 9 — 152 tests passing | | |
+| 8 — Input changes reset quote state | | |
+| 9 — Cancel PDF dialog shows no false status | | |
+| 10 — Project name display correct | | |
+| 11 — 152 tests passing | | |
 
 **Overall:** PASS / FAIL
 
