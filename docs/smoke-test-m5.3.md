@@ -1,8 +1,8 @@
 # Smoke Test — Milestone 5.3 Open PDF Button
 
-**Commit:** _(fill in after push)_
+**Commit:** `bf77fa8`
 **Date:** 2026-07-12
-**Tester:** _(your name)_
+**Tester:** `Andy O'Toole`
 
 ---
 

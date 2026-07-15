@@ -55,17 +55,17 @@ The tool is not a customer-facing product. It is an internal business operations
 
 ### Long-Term Vision
 
-GCPM is the first layer of a broader operational platform. Future phases include:
+GCPM is the first layer of a broader operational platform. As of M5, the primary interface is a PySide6 desktop GUI (`geekcurio-app`). The CLI commands remain available. Future work expands the platform beyond quoting:
 
-- **Phase 2** (current CLI foundation): Service layer complete, quote persistence, PDF export.
-- **Phase 3**: PySide6 desktop GUI — all business logic reused unchanged.
-- **Phase 4+**: Packing list generation, print queue management, material inventory tracking, customer order history.
+- **Current foundation**: Service layer, quote persistence, PDF export, and a full desktop GUI covering the end-to-end quoting workflow.
+- **Next**: Procurement and supplier reference (M6), procurement checklist (M7), packing list / production paperwork (M8).
+- **Later**: Real inventory tracking, print queue management, customer order history — deferred until process maturity supports them.
 
-The CLI is a means to an end. Every architectural decision in the service and data layers has been made with the GUI phase in mind.
+Every architectural decision in the service and data layers was made with the GUI in mind. That investment has paid off: the GUI reuses the service layer unchanged.
 
 ### Current Milestone
 
-**Milestone 4.2 is complete.** The full quote-to-PDF pipeline is operational via CLI, including optional customer and project display names. See [Section 8](#8-current-roadmap) for the full roadmap.
+**Milestone 5.3 is complete.** The desktop GUI covers the full workflow: file → quote → PDF export → open in viewer, with a history browser for recent quotes. The next priority is M6 — Procurement & Supplier Reference. See [Section 8](#8-current-roadmap) for the full roadmap.
 
 ---
 
@@ -131,11 +131,12 @@ parsers/         — slicer file reading (one ABC, one concrete implementation)
 services/        — business logic (inspection, calculation, persistence)
 db/              — database infrastructure (schema, migration, connection)
 exporters/       — output generation (text, CSV, PDF)
-ui/              — presentation (CLI argument parsing, output formatting)
+ui/              — CLI presentation (argument parsing, output formatting)
+gui/             — desktop GUI presentation (PySide6 widgets, windows)
 app.py           — entry points wiring layers together
 ```
 
-Dependencies flow inward. `ui/` knows about `services/` and `exporters/`. `services/` knows about `models/` and `parsers/`. Nothing in `models/` imports from any other layer.
+Dependencies flow inward. `ui/` and `gui/` both know about `services/` and `exporters/`. `services/` knows about `models/` and `parsers/`. Nothing in `models/` imports from any other layer.
 
 ### 3.2 Repository Layout
 
@@ -144,7 +145,7 @@ GeekCurio_Print_Manager/
 ├── CLAUDE.md                           ← this file
 ├── README.md                           ← setup and CLI usage
 ├── pyproject.toml                      ← package metadata, entry points, build config
-├── requirements.txt                    ← runtime deps (includes PySide6 for future M5)
+├── requirements.txt                    ← runtime deps (includes PySide6 for the desktop GUI)
 ├── requirements-dev.txt                ← dev deps (pytest, pypdf)
 ├── docs/
 │   └── architecture.md                 ← extended design rationale
@@ -152,7 +153,7 @@ GeekCurio_Print_Manager/
 ├── src/geekcurio_print_manager/
 │   ├── __init__.py                     ← package version (__version__ = "0.1.0")
 │   ├── __main__.py                     ← python -m entry point
-│   ├── app.py                          ← three CLI entry point functions
+│   ├── app.py                          ← four application entry point functions
 │   ├── exceptions.py                   ← typed exception hierarchy
 │   ├── assets/branding/
 │   │   └── geekcurio-logo.png          ← bundled brand asset; loaded via importlib.resources
@@ -209,7 +210,7 @@ GeekCurio_Print_Manager/
 
 ### 3.3 Entry Points
 
-Three CLI commands are registered in `pyproject.toml`:
+Four application commands are registered in `pyproject.toml`:
 
 | Command | Handler | Purpose |
 |---|---|---|
@@ -716,17 +717,37 @@ Sample `.3mf` files are available in `Sample Projects/` (gitignored). These shou
 **Milestone 5.x — GUI Polish** *(planned)*
 - Styling / theme work (fonts, spacing, colour palette).
 
-**Milestone 6 — Packing List Generator** *(planned)*
-- Generate a packing list document from a saved quote.
-- New exporter in `exporters/packing_list_export.py`.
+**Milestone 6 — Procurement & Supplier Reference** *(next priority)*
 
-**Milestone 7 — Material Inventory Tracking** *(planned)*
-- Track filament spool inventory.
-- Deduct material usage when a quote is marked as completed.
+The business needs a reliable, searchable reference for items, suppliers, and ordering rules before any inventory or packing list work makes sense.
 
-**Milestone 8 — Print Queue** *(planned)*
-- Queue multiple jobs for a print run.
-- Track status: queued → printing → complete → dispatched.
+- Supplier records (name, contact, lead time, notes).
+- GeekCurio item catalogue (internal item names and descriptions).
+- Supplier SKU mappings (what the supplier calls each item, their product code, unit of supply).
+- Supplier naming differences (e.g. a supplier's "red" may be GeekCurio's "pink" — documented explicitly).
+- Consumables reference (resin, FEP, packaging, labels, stationery, Kite supplies).
+- Supplier-specific warnings and ordering rules (e.g. do not order 40mm round bases from Zhou — they are 38mm; some bases must be marked as FLYING on the order).
+- Browse and search in the GUI.
+- Not full inventory tracking — no stock counts, movements, or platform reconciliation yet.
+
+Answers the questions: *What is this item? What do I call it on Etsy/eBay? Who supplies it? What do they call it? What is their SKU? What unit does it arrive in? What are the ordering rules?*
+
+**Milestone 7 — Procurement Checklist** *(planned)*
+- Mark items as "need to order" with desired quantities entered manually.
+- Group items by supplier.
+- Copy or export a purchase list ready to send to a supplier.
+- Surface supplier warnings before the list is finalised.
+
+**Milestone 8 — Packing List / Production Paperwork** *(planned)*
+- Generate packing and production documents from a saved quote.
+- Depends on a working quote-to-job workflow; deferred until that context exists.
+
+**Milestone 9 — Real Inventory Tracking** *(deferred — process maturity required)*
+- Stock counts, stock movements, and location tracking (picking boxes, bulk bags).
+- Platform reconciliation (Etsy and eBay stock alignment).
+- API imports from Etsy/eBay.
+- Automatic material deduction when a job is completed.
+- Deferred because accurate cross-platform inventory requires better warehouse process and Etsy/eBay API integration that is not yet in place. See [Section 9.10](#910-why-full-inventory-tracking-is-deferred).
 
 ### Long-Term Goals
 
@@ -800,6 +821,21 @@ The `GCQ-YYYY-NNNNNN` reference cannot be generated before the row exists — we
 
 This is slightly awkward but correct and simple. An alternative (generating a UUID) was considered but rejected — sequential human-readable references are more useful for a business than opaque UUIDs.
 
+### 9.10 Why Full Inventory Tracking Is Deferred
+
+Full stock control was originally planned for M7 (after a packing list generator). After reviewing the operational reality of the business, this was pushed out to M9 and replaced with a procurement reference module.
+
+The reasons:
+
+- **Stock exists across two sales channels.** Items sold on Etsy are tracked reasonably well. Items sold on eBay are picked directly from boxes, meaning platform stock figures are unreliable without a more disciplined pick-and-deduct workflow.
+- **Bulk intake is not yet tracked.** Stock arrives as bulk bags (500 or 1000 units) and is later counted out into packs of 5, 10, or 20. Without a process to record this repacking, any inventory system would immediately diverge from reality.
+- **API access is not yet in place.** Accurate reconciliation across Etsy and eBay requires reading live stock levels from their APIs. That integration is non-trivial and has not been scoped.
+- **A broken inventory system is worse than no inventory system.** If GCPM shows stock counts that do not match what is on the shelf, it erodes trust in the tool and creates more work than it saves.
+
+The right precursor to inventory tracking is a clean procurement reference — knowing exactly what each item is, who supplies it, and what the ordering rules are. This is M6. A procurement checklist (M7) follows naturally. Full inventory tracking (M9) can be built on top once the warehouse process and API foundations are in place.
+
+Supplier/SKU reference work is immediately useful today: it captures tribal knowledge (e.g. Zhou's 40mm bases measure 38mm; some bases must be marked FLYING; a supplier's "red" is GeekCurio's "pink") that currently lives only in the business owner's memory.
+
 ---
 
 ## 10. Future Ideas
@@ -833,9 +869,9 @@ These are not planned or committed. They are captured here so they are not forgo
 
 ### 11.3 No Logging
 
-As noted in Section 9.5, there is no logging framework. `print()` is used throughout. This is adequate now but will become a problem when the GUI is introduced.
+As noted in Section 9.5, there is no logging framework. `print()` is used throughout the CLI; the GUI surfaces errors via status labels. This is adequate at current complexity.
 
-**Resolution**: Introduce `logging` at the start of M5, before any GUI code is written.
+**Resolution**: Consider introducing `logging` as GUI complexity grows — particularly if multiple windows, background operations, or error conditions become harder to trace. When introduced, use Python's `logging` module consistently across all layers rather than mixing it with `print()` calls.
 
 ### 11.4 No Input Sanitisation on Notes Field
 
